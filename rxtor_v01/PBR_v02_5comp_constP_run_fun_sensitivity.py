@@ -189,6 +189,64 @@ C_res = odeint(PBR, C_u_feed, z, args = arg_ode_list)
 
 
 # %%
+# Function for PBR simulation
+# %%
+P_feed_fix = 30
+K_eq_fix = [4.0, 3.5, 3.0, 4.0]
+T_ref_fix = [300, ]*4
+Ea_fix = [40000, 3000, 5000, 20000] # J/mol
+dH_fix = [30000,-2000,-3000, 10000] # J/mol
+y_feed_fix = np.array([1.0, 0, 0, 0, 0])
+C_feed_fix = y_feed_fix*P_feed_fix*1E5/R_gas/T_feed  # (mol/m^3)
+
+
+def run_PBR(k_1_input, T_input):
+    C_feed_tmp = y_feed_fix*P_feed_fix*1E5/R_gas/T_input  # (mol/m^3)
+    C_u_feed_tmp = np.concatenate([C_feed, [u_feed]])
+    kf_list_tmp = [k_1_input, 0.003, 0.005, 0.0001]
+    arg_ode_tmp = (kf_list_tmp, K_eq_fix,
+                   T_ref_fix, Ea_fix, dH_fix,T_input)
+    z = np.linspace(0,L_bed,NN)
+    C_res = odeint(PBR, C_u_feed_tmp,
+                   z, args = arg_ode_tmp)
+    X_A = 100 - C_res[-1,0]/C_res[0,0]*100
+    return X_A
+
+#X_conv_A = run_PBR(0.000001, 773)
+X_conv_A = run_PBR(0.000001, 973)
+#C_res = C_res_test.copy()
+print(X_conv_A)
+# %%
+# Generate dummy data
+# %%
+T_data = 273+ np.array([400,425,450,475,500,525,550,575,600,625,650])
+X_data_list = []
+import random
+for tt in T_data:
+    X_tmp = run_PBR(0.000001, tt)
+    #X_data_list.append(X_tmp + random.random()*0.8)
+    X_data_list.append(X_tmp + random.random()*0.5)
+X_data = np.array(X_data_list)
+plt.plot(T_data, X_data_list, 'o', linewidth = 1.8,
+         ms = 9)
+# %%
+from scipy.optimize import minimize
+
+def obj(kk):
+    X_data_list_tmp = []
+    Penalty = 0
+    if kk[0] < 0:
+        Penalty += abs(kk)*100
+        kk[0] = 0
+    for tt in T_data:
+        X_tmp = run_PBR(kk[0], tt)
+        X_data_list_tmp.append(X_tmp)
+    diff = X_data - np.array(X_data_list_tmp)
+    return np.sum(diff**2) + Penalty
+
+opt_res = minimize(obj, [0.0001,],method = 'Nelder-mead')
+print(opt_res)
+
 # %%
 # Plot the results
 # %%
