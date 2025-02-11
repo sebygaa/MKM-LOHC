@@ -265,21 +265,32 @@ plt.show()
 # %%
 # Mole fraction graph
 # %%
-plt.figure()
-C_ov = np.sum(C_res[:,:5], axis=1)
-plt.plot(z, C_res[:,0]/C_ov, label='CO$_{2}$', ls = ':')
-plt.plot(z, C_res[:,1]/C_ov, label='H$_{2}$', ls = '-.')
-plt.plot(z, C_res[:,2]/C_ov, label='CO', ls = '--')
-plt.plot(z, C_res[:,3]/C_ov, label='CH$_{3}$OH', ls = '-')
-plt.plot(z, C_res[:,4]/C_ov, label='H$_{2}$O', ls = '-')
 
-plt.xlabel('Position (m)', fontsize = 12)
-plt.ylabel('Mole fraction (mol/mol)', fontsize = 12)
-plt.legend(fontsize=13)
-print('mole fraction of H2 at the exit:', C_res[-1,0]/C_ov[-1])
-print()
-print('Conversion of CO:', (C_feed[1] - C_res[-1,1])/C_feed[1]*100)
-#print(C_res[-1,0]/C_ov[-1])
+# %%
+
+T_dom = np.linspace(650,950,25)
+X_pred_list = []
+#k_list_tmp = [opt_res.x, k2,k3,k1_rev,k2_rev,k3_rev]
+#k_list_tmp = [opt_res.x[0], 0.003, 0.005, 0.0001]
+for TT in T_dom:
+    X_tmp = run_PBR(opt_res.x[0], TT)
+    X_pred_list.append(X_tmp)
+X_pred_arr = np.array(X_pred_list)
+
+plt.figure(figsize = [5,3.8],
+           dpi = 200)
+plt.plot(T_data, X_data, 'o', 
+         mfc = 'r', mec ='k', ms = 8,
+         label = 'dummy data')
+plt.plot(T_dom, X_pred_arr, 'k-',
+         lw = 1.9, ls = '--',
+         label = 'fitted data')
+plt.xlabel('Temperature (K)',fontsize = 13)
+plt.ylabel('Conversion of A (%)',
+           fontsize = 13)
+plt.grid(ls = ':')
+
+
 
 # %%
 plt.figure()
@@ -291,17 +302,11 @@ plt.legend(fontsize=13)
 
 # %%
 # Overall Conversion calculation
-
-# %%
-# Based on the feed CO concentration
-X_CO = (C_feed[2] - C_res[-1,2])/C_feed[2]
-print('The overall conversion of CO is:', X_CO*100, '%')
-
 # %%
 # Dummy data for testing parameter estimation
 
 # %%
-T_feed = T
+T_feed = 773
 u_feed = u_feed
 NN = NN
 L_bed =L_bed
@@ -428,12 +433,7 @@ print(opt_res)
 print()
 print('[SOLUTION of k fitting]')
 print('k1 = ', opt_res.x[0])
+
+
+
 # %%
-MSE_opt = obj(opt_res.x)
-plt.plot(k_guess_list, diff_sq_list,
-         'k-', linewidth = 1.8 )
-plt.title('k1 from Parameter estimation', fontsize = 13.5)
-plt.plot([opt_res.x[0]],[MSE_opt], 'o',
-         ms = 9, mfc = 'r', mec = 'k', mew = 1.5)
-plt.xlabel('k guess')
-plt.ylabel('Mean squared error (MSE)')
